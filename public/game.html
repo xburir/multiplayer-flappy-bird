@@ -10,7 +10,8 @@
 
 <body>
     <input type="text" id="name-input">
-    <button id="set-name">Set Name</button>
+    <input type="color" id="colorPicker" name="colorPicker">
+    <button id="save-options">Save</button>
     <button id="readyButton">Ready</button>
     <div id="players-div"></div>
 
@@ -21,21 +22,33 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
     <script>
+
+        function hexToRGBA(hex, alpha) {
+            // Remove the '#' at the beginning if it's there
+            hex = hex.replace('#', '');
+
+            // Convert hexadecimal to decimal
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+
+            // Return RGBA value
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
         const socket = io();
 
         document.getElementById('readyButton').addEventListener('click', () => {
             socket.emit('toggleReady');
         });
 
-        document.getElementById('set-name').addEventListener('click', () => {
+        document.getElementById('save-options').addEventListener('click', () => {
             let name = document.getElementById('name-input').value
+            let color = document.getElementById('colorPicker').value
             if (name === '' || name == null) {
                 alert("name mumst not be empty")
             } else {
-                document.getElementById('name-input').style.display = 'none'
-                document.getElementById('set-name').style.display = 'none'
-                socket.emit('setName', { 'name': name });
-
+                socket.emit('savePlayerInfo', { 'name': name, 'color': color });
             }
 
         });
@@ -43,8 +56,8 @@
         socket.on('startGame', () => {
             document.getElementById("players-div").style.display = 'none'
             document.getElementById("readyButton").style.display = 'none'
-            document.getElementById('name-input').style.display = 'none'
-            document.getElementById('set-name').style.display = 'none'
+            document.getElementById('colorPicker').style.display = 'none'
+            document.getElementById('save-options').style.display = 'none'
         });
 
         const canvas = document.getElementById('gameCanvas');
@@ -57,9 +70,17 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             data.users.forEach(user => {
-                // Draw bird
-                ctx.fillStyle = 'yellow';
+
+                if (user.id === socket.id) {
+                    // Draw bird for own player
+                    ctx.fillStyle = hexToRGBA(user.color, 1);
+                }
+                else {
+                    // Draw bird for other players
+                    ctx.fillStyle = hexToRGBA(user.color, 0.2);
+                }
                 ctx.fillRect(user.bird.x, user.bird.y, user.bird.width, user.bird.height);
+
             });
 
 
@@ -83,9 +104,19 @@
             let playersDiv = document.getElementById("players-div")
             playersDiv.innerHTML = ""
             data.forEach(player => {
-                let p = document.createElement('p')
-                p.innerHTML = `${player.name} - ${player.ready ? "Ready" : "Not ready"}`
-                playersDiv.appendChild(p)
+                let div = document.createElement('div')
+                div.style.display = "flex"
+                div.style.gap = '10px'
+                div.style.padding = '10px'
+                let name = document.createElement('p')
+                let ready = document.createElement('p')
+
+                name.innerHTML = `${player.name}`
+                ready.innerHTML = `${player.ready ? 'ready' : 'not ready'}`
+                name.style.color = player.color
+                div.appendChild(name)
+                div.appendChild(ready)
+                playersDiv.appendChild(div)
             });
         });
 

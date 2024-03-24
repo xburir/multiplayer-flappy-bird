@@ -135,7 +135,7 @@ io.on('connection', (socket) => {
     console.log('User connected');
 
     // Add new user to the list
-    users.push({ id: socket.id, ready: false, name: socket.id, bird: { x: 100, y: CANVAS_HEIGHT / 2, vy: 0, width: 40, height: 40 }, score: 0, alive: true });
+    users.push({ id: socket.id, ready: false, name: socket.id,color: "#000000", bird: { x: 100, y: CANVAS_HEIGHT / 2, vy: 0, width: 40, height: 40 }, score: 0, alive: true });
 
     // Broadcast updated user list to all clients
     io.emit('updateUsers', users);
@@ -167,10 +167,11 @@ io.on('connection', (socket) => {
     })
 
 
-    socket.on('setName', (input) => {
+    socket.on('savePlayerInfo', (input) => {
         const user = users.find(u => u.id === socket.id);
         if (user) {
             user.name = input.name
+            user.color = input.color
             io.emit('updateUsers', users); // Broadcast updated user list
         }
     });
