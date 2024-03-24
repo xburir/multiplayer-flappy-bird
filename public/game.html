@@ -9,11 +9,24 @@
 </head>
 
 <body>
-    <input type="text" id="name-input">
-    <input type="color" id="colorPicker" name="colorPicker">
-    <button id="save-options">Save</button>
-    <button id="readyButton">Ready</button>
-    <div id="players-div"></div>
+
+    <div id="beforeGame">
+        <div class="row">
+            <p>Enter your name:</p>
+            <input type="text" id="name-input" placeholder="Your name">
+        </div>
+        <div class="row">
+            <p>Select your color</p>
+            <input type="color" id="colorPicker" name="colorPicker">
+        </div>
+        <button id="save-options">Save</button>
+        <button id="readyButton">Ready</button>
+
+
+    </div>
+
+    <div id="players-div">
+    </div>
 
 
     <div id="game-container">
@@ -54,10 +67,9 @@
         });
 
         socket.on('startGame', () => {
-            document.getElementById("players-div").style.display = 'none'
-            document.getElementById("readyButton").style.display = 'none'
-            document.getElementById('colorPicker').style.display = 'none'
-            document.getElementById('save-options').style.display = 'none'
+            document.getElementById('game-container').style.display = 'flex'
+            document.getElementById("beforeGame").style.display = 'none'
+
         });
 
         const canvas = document.getElementById('gameCanvas');
@@ -102,17 +114,21 @@
 
         socket.on('updateUsers', (data) => {
             let playersDiv = document.getElementById("players-div")
-            playersDiv.innerHTML = ""
+            playersDiv.innerHTML = "<p>Connected players:</p>"
+
             data.forEach(player => {
                 let div = document.createElement('div')
                 div.style.display = "flex"
-                div.style.gap = '10px'
-                div.style.padding = '10px'
                 let name = document.createElement('p')
                 let ready = document.createElement('p')
 
                 name.innerHTML = `${player.name}`
                 ready.innerHTML = `${player.ready ? 'ready' : 'not ready'}`
+
+                if (!player.alive) {
+                    ready.innerHTML = 'dead'
+                }
+
                 name.style.color = player.color
                 div.appendChild(name)
                 div.appendChild(ready)

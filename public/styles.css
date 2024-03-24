@@ -3,13 +3,17 @@ body {
     padding: 0;
     overflow: hidden;
     background-color: #7ec0ee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
 }
 
 #game-container {
-    display: flex;
+    display: none;
     justify-content: center;
     align-items: center;
-    height: 80vh;
+    width: 95vw;
 }
 
 canvas {
@@ -22,4 +26,33 @@ canvas {
     left: 20px;
     font-size: 24px;
     color: black;
+}
+
+#beforeGame{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    align-content: center;
+    flex-direction: column;
+}
+
+.row{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+}
+
+#players-div div{
+    gap: 10px;
+}
+
+#players-div  p{
+    margin: 0px;
+}
+
+#players-div{
+    display: flex;
+    align-items: center;
+    flex-direction: column;
 }

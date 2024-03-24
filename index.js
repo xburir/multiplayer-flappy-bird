@@ -126,6 +126,7 @@ function checkCollisions() {
 function gameOver(user) {
     user.alive = false
     io.to(user.id).emit('gameOver', "You lost");
+    io.emit('updateUsers',users)
 }
 
 // Start the game loop
