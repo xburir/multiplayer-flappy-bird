@@ -5,14 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flappy Bird Game - Player</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
     <input type="text" id="name-input">
     <button id="set-name">Set Name</button>
     <button id="readyButton">Ready</button>
-
     <div id="players-div"></div>
+
+
+    <div id="game-container">
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
     <script>
@@ -42,16 +47,52 @@
             document.getElementById('set-name').style.display = 'none'
         });
 
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        socket.on('render', (data) => {
+            const PIPE_WIDTH = data.PIPE_WIDTH
+            const PIPE_GAP = data.PIPE_GAP
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            data.users.forEach(user => {
+                // Draw bird
+                ctx.fillStyle = 'yellow';
+                ctx.fillRect(user.bird.x, user.bird.y, user.bird.width, user.bird.height);
+            });
+
+
+            // Draw pipes
+            ctx.fillStyle = 'green';
+            for (let pipe of data.pipes) {
+                console.log("drawing pipe")
+                ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y);
+                ctx.fillRect(pipe.x, pipe.y + PIPE_GAP, PIPE_WIDTH, canvas.height - (pipe.y + PIPE_GAP));
+            }
+        })
+
+        socket.on('gameOver', (message) => {
+            console.log(message);
+        })
+
         socket.on('updateUsers', (data) => {
             let playersDiv = document.getElementById("players-div")
             playersDiv.innerHTML = ""
             data.forEach(player => {
-                console.log(player)
                 let p = document.createElement('p')
                 p.innerHTML = `${player.name} - ${player.ready ? "Ready" : "Not ready"}`
                 playersDiv.appendChild(p)
             });
         });
+
+        // Handle user input (flap bird)
+        document.addEventListener('keydown', handleInput);
+        function handleInput(event) {
+            if (event.code === 'Space') {
+                socket.emit('jump', socket.id)
+            }
+        }
     </script>
 </body>
 
