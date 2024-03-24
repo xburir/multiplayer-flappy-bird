@@ -138,10 +138,17 @@
 
         // Handle user input (flap bird)
         document.addEventListener('keydown', handleInput);
+        document.addEventListener('click', handleJump);
+        document.addEventListener('touchstart', handleJump);
         function handleInput(event) {
             if (event.code === 'Space') {
-                socket.emit('jump', socket.id)
+                handleJump(event)
             }
+        }
+
+        function handleJump(event) {
+            // Emit 'jump' event when the screen is tapped or clicked
+            socket.emit('jump', socket.id);
         }
     </script>
 </body>
