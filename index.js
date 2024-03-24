@@ -51,6 +51,8 @@ function gameLoop() {
     }else{
         //TODO-riso stop game
         clearInterval(gameLoopInterval)
+        pipes = []
+        io.emit('gameEnd',"Winner is somebody")
     }
 }
 
@@ -103,20 +105,17 @@ function checkCollisions() {
             if (user.bird.x < pipe.x + PIPE_WIDTH &&
                 user.bird.x + user.bird.width > pipe.x &&
                 (user.bird.y < pipe.y || user.bird.y + user.bird.height > pipe.y + PIPE_GAP)) {
-                console.log("tu")
                 gameOver(user);
                 return;
             }
 
             // Check for collisions with ground
             if (user.bird.y + user.bird.height > CANVAS_HEIGHT) {
-                console.log("tu2")
                 gameOver(user);
             }
 
             // Check for collisions with roof
             if (user.bird.y < 0) {
-                console.log("tu3")
                 gameOver(user);
             }
         })

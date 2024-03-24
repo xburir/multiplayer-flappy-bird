@@ -51,8 +51,8 @@
         const ctx = canvas.getContext('2d');
 
         socket.on('render', (data) => {
-            const PIPE_WIDTH = data.PIPE_WIDTH
-            const PIPE_GAP = data.PIPE_GAP
+            const PIPE_WIDTH = data.pipe_width
+            const PIPE_GAP = data.pipe_gap
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -66,13 +66,16 @@
             // Draw pipes
             ctx.fillStyle = 'green';
             for (let pipe of data.pipes) {
-                console.log("drawing pipe")
                 ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y);
                 ctx.fillRect(pipe.x, pipe.y + PIPE_GAP, PIPE_WIDTH, canvas.height - (pipe.y + PIPE_GAP));
             }
         })
 
         socket.on('gameOver', (message) => {
+            console.log(message);
+        })
+
+        socket.on('gameEnd', (message) => {
             console.log(message);
         })
 
