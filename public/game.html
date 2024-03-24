@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Game - Player</title>
+</head>
+
+<body>
+    <input type="text" id="name-input">
+    <button id="set-name">Set Name</button>
+    <button id="readyButton">Ready</button>
+
+    <div id="players-div"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        document.getElementById('readyButton').addEventListener('click', () => {
+            socket.emit('toggleReady');
+        });
+
+        document.getElementById('set-name').addEventListener('click', () => {
+            let name = document.getElementById('name-input').value
+            if (name === '' || name == null) {
+                alert("name mumst not be empty")
+            } else {
+                document.getElementById('name-input').style.display = 'none'
+                document.getElementById('set-name').style.display = 'none'
+                socket.emit('setName', { 'name': name });
+
+            }
+
+        });
+
+        socket.on('startGame', () => {
+            document.getElementById("players-div").style.display = 'none'
+            document.getElementById("readyButton").style.display = 'none'
+            document.getElementById('name-input').style.display = 'none'
+            document.getElementById('set-name').style.display = 'none'
+        });
+
+        socket.on('updateUsers', (data) => {
+            let playersDiv = document.getElementById("players-div")
+            playersDiv.innerHTML = ""
+            data.forEach(player => {
+                console.log(player)
+                let p = document.createElement('p')
+                p.innerHTML = `${player.name} - ${player.ready ? "Ready" : "Not ready"}`
+                playersDiv.appendChild(p)
+            });
+        });
+    </script>
+</body>
+
+</html>
