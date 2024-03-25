@@ -28,44 +28,35 @@ const TICK_RATE = 1000 / 60; // 60 frames per second
 // Game state
 let pipes = [];
 let users = []; // Array to store connected users
-let usersBirds = []
+let usersPositions = []
 let readyUsers = 0; // Count of users who are ready
 let gameLoopInterval;
+let gameRunning = false
 
 
 // Main game loop
 function gameLoop() {
-    anybodyAlive = false
-    users.forEach(user => {
-        if (user.alive) {
-            anybodyAlive = true;
-        }
-    })
 
-    if (anybodyAlive) {
+    if (gameRunning) {
         // Update game state
         update();
 
-        //TODO-riso send user info to render the game
         // Render game
-        io.emit('render', { 'users': users, 'pipes': pipes, 'pipe_width': PIPE_WIDTH, 'pipe_gap': PIPE_GAP })
+        io.emit('render', { 'usersPositions': usersPositions, 'pipes': pipes, 'pipe_width': PIPE_WIDTH, 'pipe_gap': PIPE_GAP })
 
     } else {
-        //TODO-riso stop game
         clearInterval(gameLoopInterval)
         pipes = []
+        users = []
+        usersPositions = []
         io.emit('gameEnd', "Winner is somebody")
-        users.forEach(player => {
-            player.ready = false
-            player.alive = true
-        })
     }
 }
 
 // Update function (to handle game logic)
 function update() {
     // Update bird position
-    users.forEach(user => {
+    usersPositions.forEach(user => {
         user.bird.vy += GRAVITY;
         user.bird.y += user.bird.vy
     })
@@ -85,7 +76,7 @@ function update() {
         if (pipe.x < 100 && !pipe.scored) {
             pipe.scored = true // Mark the pipe as scored to avoid duplicate scoring 
             users.forEach(user => {
-                if (user.alive) {
+                if (user.status !== "dead") {
                     user.score++; // Increment score if the bird passes the pipe
                 }
             })
@@ -94,8 +85,7 @@ function update() {
 
     // Check for collisions
     checkCollisions();
-
-
+    checkAlivePlayers();
     io.emit('updateUsers', users)
 }
 
@@ -105,11 +95,23 @@ function spawnPipe() {
     pipes.push({ x: CANVAS_WIDTH, y: gapPosition });
 }
 
+function checkAlivePlayers() {
+    let anybodyAlive = false
+    users.forEach(user => {
+        if (user.status === "ready") {
+            anybodyAlive = true
+        }
+    })
+    if (!anybodyAlive) {
+        gameRunning = false
+    }
+}
+
 
 // Check for collisions with pipes
 function checkCollisions() {
     for (let pipe of pipes) {
-        users.forEach(user => {
+        usersPositions.forEach(user => {
 
             if (user.bird.x < pipe.x + PIPE_WIDTH &&
                 user.bird.x + user.bird.width > pipe.x &&
@@ -170,22 +172,21 @@ async function recolorImage(replacementColor) {
 
 // Game over function
 function gameOver(user) {
-    user.alive = false
+    readyUsers--;
+    users.find(u => u.id === user.id).status = "dead"
     io.to(user.id).emit('gameOver', "You lost");
 }
 
-// Start the game loop
-gameLoop();
+
 
 io.on('connection', (socket) => {
     console.log('User connected');
 
     // Add new user to the list
-    users.push({ id: socket.id, ready: false, name: socket.id, color: "#000000", bird: { x: 100, y: CANVAS_HEIGHT / 2, vy: 0, width: 40, height: 40 }, score: 0, alive: true });
 
     recolorImage('#84AFD3').then(data => {
-        usersBirds.push({ userId: socket.id, bird: data })
-        io.emit('updateBirds', usersBirds)
+        users.push({ id: socket.id, status: "not_ready", name: socket.id, score: 0, birdImage: data });
+        usersPositions.push({ id: socket.id, bird: { x: 100, y: CANVAS_HEIGHT / 2, vy: 0, width: 40, height: 40 } })
         io.emit('updateUsers', users);
     })
 
@@ -195,14 +196,18 @@ io.on('connection', (socket) => {
     socket.on('toggleReady', () => {
         const user = users.find(u => u.id === socket.id);
         if (user) {
-            user.ready = !user.ready;
+            if (user.status === "not_ready") {
+                user.status = "ready"
+            } else if (user.status === "ready") {
+                user.status = "not_ready"
+            }
             io.emit('updateUsers', users); // Broadcast updated user list
-            io.emit('updateBirds', usersBirds)
-            if (user.ready) {
+
+            if (user.status === "ready") {
                 readyUsers++;
                 if (readyUsers === users.length) {
                     io.emit('startGame'); // Start game when all users are ready
-
+                    gameRunning = true
                     gameLoopInterval = setInterval(gameLoop, TICK_RATE);
                 }
             } else {
@@ -212,8 +217,9 @@ io.on('connection', (socket) => {
     });
 
     socket.on('jump', (id) => {
-        users.forEach(user => {
-            if (user.id === id && user.alive) {
+        usersPositions.forEach(user => {
+            const foundUser = users.find(u => u.id === id);
+            if (user.id === id && foundUser.status !== "dead") {
                 user.bird.vy = -5; // Flap bird upwards
             }
         })
@@ -222,14 +228,11 @@ io.on('connection', (socket) => {
 
     socket.on('savePlayerInfo', (input) => {
         const user = users.find(u => u.id === socket.id);
-        const userBird = usersBirds.find(u => u.userId === socket.id)
-        if (user && userBird) {
+        if (user) {
             user.name = input.name
-            user.color = input.color
             recolorImage(input.color).then(data => {
-                userBird.bird = data
+                user.birdImage = data
                 io.emit('updateUsers', users); // Broadcast updated user list
-                io.emit('updateBirds', usersBirds)
             })
 
         }
@@ -239,9 +242,8 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('User disconnected');
         users = users.filter(user => user.id !== socket.id);
-        usersBirds = usersBirds.filter(user => user.userId !== socket.id);
+        usersPositions = usersPositions.filter(user => user.id !== socket.id);
         io.emit('updateUsers', users); // Broadcast updated user list
-        io.emit('updateBirds', usersBirds)
         readyUsers = Math.max(0, readyUsers - 1); // Update readyUsers count
 
     });

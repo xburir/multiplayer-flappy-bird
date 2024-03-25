@@ -28,23 +28,6 @@
 
 
     </div>
-
-
-
-    <div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Player</th>
-                    <th>State</th>
-                    <th>Score</th>
-                </tr>
-            </thead>
-            <tbody id="players-table">
-            </tbody>
-        </table>
-    </div>
-
     <div id="game-container">
         <canvas id="gameCanvas" width="400" height="600"></canvas>
     </div>
@@ -56,7 +39,7 @@
         const socket = io();
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        let usersBirds = []
+        let players = []
 
         document.getElementById('readyButton').addEventListener('click', () => {
             socket.emit('toggleReady');
@@ -76,26 +59,21 @@
         });
 
 
-
         socket.on('render', (data) => {
             const PIPE_WIDTH = data.pipe_width
             const PIPE_GAP = data.pipe_gap
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            data.users.forEach(user => {
-                const userBird = usersBirds.find(u => u.userId === user.id)
+            data.usersPositions.forEach(user => {
+                const userBird = players.find(u => u.id === user.id)
                 const image = new Image()
-                image.src = userBird.bird;
-                if (userBird.userId !== socket.id) {
+                image.src = convertImgDataToImgURL(userBird.birdImage);
+                if (userBird.id !== socket.id) {
                     ctx.globalAlpha = 0.4;
                 }
                 ctx.drawImage(image, user.bird.x, user.bird.y, user.bird.width, user.bird.height);
                 ctx.globalAlpha = 1;
             });
-
-
-
 
             // Draw pipes
             ctx.fillStyle = 'green';
@@ -113,61 +91,55 @@
             console.log(message);
         })
 
-        socket.on('updateBirds', (data) => {
+        function convertImgDataToImgURL(data) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            usersBirds = []
-            data.forEach(userBird => {
-                let bird = userBird.bird
-                // Set canvas dimensions
-                canvas.width = bird.width;
-                canvas.height = bird.height;
+
+            canvas.width = data.width;
+            canvas.height = data.height;
 
 
-                // Create ImageData object from received image data
-                const imageDataObject = new ImageData(new Uint8ClampedArray(bird.data), bird.width, bird.height);
+            // Create ImageData object from received image data
+            const imageDataObject = new ImageData(new Uint8ClampedArray(data.data), data.width, data.height);
 
-                // Put the received image data onto the canvas
-                ctx.putImageData(imageDataObject, 0, 0);
+            // Put the received image data onto the canvas
+            ctx.putImageData(imageDataObject, 0, 0);
 
-                // Convert the canvas content to a data URL
-                const dataURL = canvas.toDataURL('image/png');
+            // Convert the canvas content to a data URL
+            const dataURL = canvas.toDataURL('image/png');
 
-                usersBirds.push({ 'userId': userBird.userId, 'bird': dataURL })
+            return dataURL
+        }
 
-                //TODO-RISO najst img s id socketu a nastavit img
-                let image = document.getElementById(userBird.userId)
-                console.log(image)
-            })
-        })
-
-
-        socket.on('updateUsers', (data) => {
+        socket.on('updateUsers', (users) => {
 
             let cardsDiv = document.getElementById('playerCards')
             cardsDiv.innerHTML = ""
 
-            let playersTable = document.getElementById("players-table")
-            playersTable.innerHTML = ""
+            players = users
+            users.forEach(player => {
 
-            //TODO-riso toto cele presunut do updateBirds s tym ze do birds potrebujem dostat info o name a status
-            data.forEach(player => {
-
-                const userBird = usersBirds.find(u => u.userId === player.id)
                 const div = document.createElement('div')
                 div.classList.add('playerCard')
 
                 const birdImg = document.createElement('img')
                 birdImg.classList.add('playerBird')
-                birdImg.src = userBird.bird
+                birdImg.src = convertImgDataToImgURL(player.birdImage)
                 birdImg.setAttribute("id", player.id);
 
                 const statusImg = document.createElement('img')
                 statusImg.classList.add('playerStatus')
-                if (!player.alive) {
-                    statusImg.src = './dead.png'
-                } else {
-                    statusImg.src = `${player.ready ? './ready.png' : './not_ready.png'}`
+                switch (player.status) {
+                    case "ready":
+
+                        statusImg.src = './ready.png'
+                        break
+                    case "not_ready":
+                        statusImg.src = './not_ready.png'
+                        break
+                    case "dead":
+                        statusImg.src = './dead.png'
+                        break
                 }
 
                 const nameP = document.createElement('p')
@@ -177,33 +149,6 @@
                 div.appendChild(birdImg)
                 div.appendChild(statusImg)
                 cardsDiv.appendChild(div)
-
-
-
-
-
-                let row = document.createElement("tr")
-
-                let name = document.createElement('td')
-                let ready = document.createElement('td')
-                let score = document.createElement('td')
-
-                name.innerHTML = `${player.name}`
-                ready.innerHTML = `${player.ready ? 'ready' : 'not ready'}`
-
-                if (!player.alive) {
-                    ready.innerHTML = 'dead'
-                }
-
-                score.innerHTML = `${player.score}`
-
-                name.style.color = player.color
-                row.appendChild(name)
-                row.appendChild(ready)
-                row.appendChild(score)
-
-
-                playersTable.appendChild(row)
             });
         });
 
