@@ -10,6 +10,10 @@
 
 <body>
 
+    <div id="playerCards">
+
+    </div>
+
     <div id="beforeGame">
         <div class="row">
             <p>Enter your name:</p>
@@ -25,10 +29,10 @@
 
     </div>
 
-   
+
 
     <div>
-        <table >
+        <table>
             <thead>
                 <tr>
                     <th>Player</th>
@@ -44,24 +48,15 @@
     <div id="game-container">
         <canvas id="gameCanvas" width="400" height="600"></canvas>
     </div>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/recolor-image/1.0.0/recolor-image.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
     <script>
 
-        function hexToRGBA(hex, alpha) {
-            // Remove the '#' at the beginning if it's there
-            hex = hex.replace('#', '');
-
-            // Convert hexadecimal to decimal
-            const r = parseInt(hex.substring(0, 2), 16);
-            const g = parseInt(hex.substring(2, 4), 16);
-            const b = parseInt(hex.substring(4, 6), 16);
-
-            // Return RGBA value
-            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-        }
 
         const socket = io();
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let usersBirds = []
 
         document.getElementById('readyButton').addEventListener('click', () => {
             socket.emit('toggleReady');
@@ -70,11 +65,7 @@
         document.getElementById('save-options').addEventListener('click', () => {
             let name = document.getElementById('name-input').value
             let color = document.getElementById('colorPicker').value
-            if (name === '' || name == null) {
-                alert("name mumst not be empty")
-            } else {
-                socket.emit('savePlayerInfo', { 'name': name, 'color': color });
-            }
+            socket.emit('savePlayerInfo', { 'name': name, 'color': color });
 
         });
 
@@ -84,8 +75,7 @@
 
         });
 
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+
 
         socket.on('render', (data) => {
             const PIPE_WIDTH = data.pipe_width
@@ -94,18 +84,17 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             data.users.forEach(user => {
-
-                if (user.id === socket.id) {
-                    // Draw bird for own player
-                    ctx.fillStyle = hexToRGBA(user.color, 1);
+                const userBird = usersBirds.find(u => u.userId === user.id)
+                const image = new Image()
+                image.src = userBird.bird;
+                if (userBird.userId !== socket.id) {
+                    ctx.globalAlpha = 0.4;
                 }
-                else {
-                    // Draw bird for other players
-                    ctx.fillStyle = hexToRGBA(user.color, 0.2);
-                }
-                ctx.fillRect(user.bird.x, user.bird.y, user.bird.width, user.bird.height);
-
+                ctx.drawImage(image, user.bird.x, user.bird.y, user.bird.width, user.bird.height);
+                ctx.globalAlpha = 1;
             });
+
+
 
 
             // Draw pipes
@@ -124,11 +113,74 @@
             console.log(message);
         })
 
+        socket.on('updateBirds', (data) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            usersBirds = []
+            data.forEach(userBird => {
+                let bird = userBird.bird
+                // Set canvas dimensions
+                canvas.width = bird.width;
+                canvas.height = bird.height;
+
+
+                // Create ImageData object from received image data
+                const imageDataObject = new ImageData(new Uint8ClampedArray(bird.data), bird.width, bird.height);
+
+                // Put the received image data onto the canvas
+                ctx.putImageData(imageDataObject, 0, 0);
+
+                // Convert the canvas content to a data URL
+                const dataURL = canvas.toDataURL('image/png');
+
+                usersBirds.push({ 'userId': userBird.userId, 'bird': dataURL })
+
+                //TODO-RISO najst img s id socketu a nastavit img
+                let image = document.getElementById(userBird.userId)
+                console.log(image)
+            })
+        })
+
+
         socket.on('updateUsers', (data) => {
+
+            let cardsDiv = document.getElementById('playerCards')
+            cardsDiv.innerHTML = ""
+
             let playersTable = document.getElementById("players-table")
             playersTable.innerHTML = ""
 
+            //TODO-riso toto cele presunut do updateBirds s tym ze do birds potrebujem dostat info o name a status
             data.forEach(player => {
+
+                const userBird = usersBirds.find(u => u.userId === player.id)
+                const div = document.createElement('div')
+                div.classList.add('playerCard')
+
+                const birdImg = document.createElement('img')
+                birdImg.classList.add('playerBird')
+                birdImg.src = userBird.bird
+                birdImg.setAttribute("id", player.id);
+
+                const statusImg = document.createElement('img')
+                statusImg.classList.add('playerStatus')
+                if (!player.alive) {
+                    statusImg.src = './dead.png'
+                } else {
+                    statusImg.src = `${player.ready ? './ready.png' : './not_ready.png'}`
+                }
+
+                const nameP = document.createElement('p')
+                nameP.innerHTML = `${player.name}`
+
+                div.appendChild(nameP)
+                div.appendChild(birdImg)
+                div.appendChild(statusImg)
+                cardsDiv.appendChild(div)
+
+
+
+
 
                 let row = document.createElement("tr")
 

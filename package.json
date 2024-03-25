@@ -4,6 +4,7 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "sharp": "^0.33.3",
     "express": "^4.18.2",
     "http": "^0.0.1-security",
     "socket.io": "^4.6.1"

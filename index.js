@@ -4,6 +4,7 @@ const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
 const path = require("path")
+const sharp = require('sharp');
 
 const app = express();
 const server = http.createServer(app);
@@ -27,6 +28,7 @@ const TICK_RATE = 1000 / 60; // 60 frames per second
 // Game state
 let pipes = [];
 let users = []; // Array to store connected users
+let usersBirds = []
 let readyUsers = 0; // Count of users who are ready
 let gameLoopInterval;
 
@@ -34,8 +36,8 @@ let gameLoopInterval;
 // Main game loop
 function gameLoop() {
     anybodyAlive = false
-    users.forEach(user =>{
-        if (user.alive){
+    users.forEach(user => {
+        if (user.alive) {
             anybodyAlive = true;
         }
     })
@@ -46,15 +48,16 @@ function gameLoop() {
 
         //TODO-riso send user info to render the game
         // Render game
-        io.emit('render',{'users': users, 'pipes': pipes, 'pipe_width': PIPE_WIDTH, 'pipe_gap': PIPE_GAP })
-    
-    }else{
+        io.emit('render', { 'users': users, 'pipes': pipes, 'pipe_width': PIPE_WIDTH, 'pipe_gap': PIPE_GAP })
+
+    } else {
         //TODO-riso stop game
         clearInterval(gameLoopInterval)
         pipes = []
-        io.emit('gameEnd',"Winner is somebody")
-        players.forEach(player =>{
+        io.emit('gameEnd', "Winner is somebody")
+        users.forEach(player => {
             player.ready = false
+            player.alive = true
         })
     }
 }
@@ -92,8 +95,8 @@ function update() {
     // Check for collisions
     checkCollisions();
 
-    
-    io.emit('updateUsers',users)
+
+    io.emit('updateUsers', users)
 }
 
 // Spawn a new pipe
@@ -128,6 +131,43 @@ function checkCollisions() {
     }
 }
 
+async function recolorImage(replacementColor) {
+    replacementColor = replacementColor.replace('#', '');
+    // Convert hexadecimal to decimal
+    const newr = parseInt(replacementColor.substring(0, 2), 16);
+    const newg = parseInt(replacementColor.substring(2, 4), 16);
+    const newb = parseInt(replacementColor.substring(4, 6), 16);
+
+    // Read the input image
+    const image = await sharp("./public/bird.png").raw().toBuffer({ resolveWithObject: true });
+
+    // RGB values of the color to replace
+    const targetColor = [132, 175, 211];
+
+    // Get image metadata
+    const { info, data } = image;
+
+    // Get the width and height of the image
+    const { width, height, channels } = info;
+
+    // Iterate over each pixel in the image
+    for (let i = 0; i < data.length; i += channels) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        // Check if the pixel matches the target color
+        if (r === targetColor[0] && g === targetColor[1] && b === targetColor[2]) {
+            // Replace the pixel with the replacement color
+            data[i] = newr
+            data[i + 1] = newg
+            data[i + 2] = newb
+        }
+    }
+
+    return { 'width': width, 'height': height, 'data': data }
+}
+
 // Game over function
 function gameOver(user) {
     user.alive = false
@@ -141,10 +181,15 @@ io.on('connection', (socket) => {
     console.log('User connected');
 
     // Add new user to the list
-    users.push({ id: socket.id, ready: false, name: socket.id,color: "#000000", bird: { x: 100, y: CANVAS_HEIGHT / 2, vy: 0, width: 40, height: 40 }, score: 0, alive: true });
+    users.push({ id: socket.id, ready: false, name: socket.id, color: "#000000", bird: { x: 100, y: CANVAS_HEIGHT / 2, vy: 0, width: 40, height: 40 }, score: 0, alive: true });
 
-    // Broadcast updated user list to all clients
-    io.emit('updateUsers', users);
+    recolorImage('#84AFD3').then(data => {
+        usersBirds.push({ userId: socket.id, bird: data })
+        io.emit('updateBirds', usersBirds)
+        io.emit('updateUsers', users);
+    })
+
+
 
     // Handle user ready state change
     socket.on('toggleReady', () => {
@@ -152,10 +197,12 @@ io.on('connection', (socket) => {
         if (user) {
             user.ready = !user.ready;
             io.emit('updateUsers', users); // Broadcast updated user list
+            io.emit('updateBirds', usersBirds)
             if (user.ready) {
                 readyUsers++;
                 if (readyUsers === users.length) {
                     io.emit('startGame'); // Start game when all users are ready
+
                     gameLoopInterval = setInterval(gameLoop, TICK_RATE);
                 }
             } else {
@@ -164,9 +211,9 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('jump', (id) =>{
+    socket.on('jump', (id) => {
         users.forEach(user => {
-            if (user.id === id && user.alive){
+            if (user.id === id && user.alive) {
                 user.bird.vy = -5; // Flap bird upwards
             }
         })
@@ -175,10 +222,16 @@ io.on('connection', (socket) => {
 
     socket.on('savePlayerInfo', (input) => {
         const user = users.find(u => u.id === socket.id);
-        if (user) {
+        const userBird = usersBirds.find(u => u.userId === socket.id)
+        if (user && userBird) {
             user.name = input.name
             user.color = input.color
-            io.emit('updateUsers', users); // Broadcast updated user list
+            recolorImage(input.color).then(data => {
+                userBird.bird = data
+                io.emit('updateUsers', users); // Broadcast updated user list
+                io.emit('updateBirds', usersBirds)
+            })
+
         }
     });
 
@@ -186,10 +239,11 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('User disconnected');
         users = users.filter(user => user.id !== socket.id);
+        usersBirds = usersBirds.filter(user => user.userId !== socket.id);
         io.emit('updateUsers', users); // Broadcast updated user list
+        io.emit('updateBirds', usersBirds)
         readyUsers = Math.max(0, readyUsers - 1); // Update readyUsers count
 
-        //TODO - ked sa odpoji odstranit jeho vtaka 
     });
 });
 

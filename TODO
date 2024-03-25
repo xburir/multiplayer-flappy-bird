@@ -1,3 +1,7 @@
 - grafika
 - po ukonceni hry refresh alebo nieco
 - prerobit tabulku hracov na meno pod tym cislo a vedla ikonka ci je ready, mrtvy alebo co
+- zrychlovat pipes a po skonceni hry nastavit na base speed
+- pridat animaciu ked ide do vzduchu dole kridla ked pada hore kridla
+- skratit vtaci zadok
+- 2x treba kliknut na save aby sa uplatnila farba, treba presunut info ktore sa posiela
