@@ -53,6 +53,9 @@ function gameLoop() {
         clearInterval(gameLoopInterval)
         pipes = []
         io.emit('gameEnd',"Winner is somebody")
+        players.forEach(player =>{
+            player.ready = false
+        })
     }
 }
 
@@ -88,6 +91,9 @@ function update() {
 
     // Check for collisions
     checkCollisions();
+
+    
+    io.emit('updateUsers',users)
 }
 
 // Spawn a new pipe
@@ -126,7 +132,6 @@ function checkCollisions() {
 function gameOver(user) {
     user.alive = false
     io.to(user.id).emit('gameOver', "You lost");
-    io.emit('updateUsers',users)
 }
 
 // Start the game loop
@@ -161,7 +166,7 @@ io.on('connection', (socket) => {
 
     socket.on('jump', (id) =>{
         users.forEach(user => {
-            if (user.id === id){
+            if (user.id === id && user.alive){
                 user.bird.vy = -5; // Flap bird upwards
             }
         })

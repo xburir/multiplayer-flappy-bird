@@ -7,6 +7,11 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 20px;
+    touch-action: manipulation;
+    /* Ensure touch events are not delayed
+    max-width: 100vw;
+    max-height: 100vh;
+    position: fixed; */
 }
 
 #game-container {
@@ -27,7 +32,7 @@ canvas {
     color: black;
 }
 
-#beforeGame{
+#beforeGame {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -35,23 +40,46 @@ canvas {
     flex-direction: column;
 }
 
-.row{
+.row {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 5px;
 }
 
-#players-div div{
+#players-div div {
     gap: 10px;
 }
 
-#players-div  p{
+#players-div p {
     margin: 0px;
 }
 
-#players-div{
+#players-div {
     display: flex;
     align-items: center;
     flex-direction: column;
+}
+
+* {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th,
+table td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    text-align: center;
+}
+
+
+table th {
+    font-size: 20px;
 }

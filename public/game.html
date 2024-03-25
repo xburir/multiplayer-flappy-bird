@@ -3,8 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flappy Bird Game - Player</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <title>Fappy Bird Game</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -25,9 +25,21 @@
 
     </div>
 
-    <div id="players-div">
-    </div>
+   
 
+    <div>
+        <table >
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>State</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody id="players-table">
+            </tbody>
+        </table>
+    </div>
 
     <div id="game-container">
         <canvas id="gameCanvas" width="400" height="600"></canvas>
@@ -113,14 +125,16 @@
         })
 
         socket.on('updateUsers', (data) => {
-            let playersDiv = document.getElementById("players-div")
-            playersDiv.innerHTML = "<p>Connected players:</p>"
+            let playersTable = document.getElementById("players-table")
+            playersTable.innerHTML = ""
 
             data.forEach(player => {
-                let div = document.createElement('div')
-                div.style.display = "flex"
-                let name = document.createElement('p')
-                let ready = document.createElement('p')
+
+                let row = document.createElement("tr")
+
+                let name = document.createElement('td')
+                let ready = document.createElement('td')
+                let score = document.createElement('td')
 
                 name.innerHTML = `${player.name}`
                 ready.innerHTML = `${player.ready ? 'ready' : 'not ready'}`
@@ -129,10 +143,15 @@
                     ready.innerHTML = 'dead'
                 }
 
+                score.innerHTML = `${player.score}`
+
                 name.style.color = player.color
-                div.appendChild(name)
-                div.appendChild(ready)
-                playersDiv.appendChild(div)
+                row.appendChild(name)
+                row.appendChild(ready)
+                row.appendChild(score)
+
+
+                playersTable.appendChild(row)
             });
         });
 
