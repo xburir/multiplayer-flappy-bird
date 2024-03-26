@@ -32,7 +32,6 @@
     <div id="game-container">
         <canvas id="gameCanvas" width="400" height="600"></canvas>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/recolor-image/1.0.0/recolor-image.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
     <script>
 
@@ -76,7 +75,7 @@
             data.usersPositions.forEach(user => {
                 const userBird = players.find(u => u.id === user.id)
                 const image = new Image()
-                image.src = convertImgDataToImgURL(userBird.birdImage);
+                image.src = user.bird.vy < 0 ? convertImgDataToImgURL(userBird.birdImage, "bird_flying") : convertImgDataToImgURL(userBird.birdImage,"bird_falling");
                 if (userBird.id !== socket.id) {
                     ctx.globalAlpha = 0.4;
                 }
@@ -100,7 +99,7 @@
             console.log(message);
         })
 
-        function convertImgDataToImgURL(data) {
+        function convertImgDataToImgURL(data,state) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -109,8 +108,13 @@
 
 
             // Create ImageData object from received image data
-            const imageDataObject = new ImageData(new Uint8ClampedArray(data.data), data.width, data.height);
-
+            let imageDataObject;
+            if (state === 'bird_flying'){
+                imageDataObject = new ImageData(new Uint8ClampedArray(data.bird_flying), data.width, data.height);
+            }
+            if (state === 'bird_falling'){
+                imageDataObject = new ImageData(new Uint8ClampedArray(data.bird_falling), data.width, data.height);
+            } 
             // Put the received image data onto the canvas
             ctx.putImageData(imageDataObject, 0, 0);
 
@@ -132,7 +136,7 @@
 
                     const birdImg = document.createElement('img')
                     birdImg.classList.add('playerBird')
-                    birdImg.src = convertImgDataToImgURL(player.birdImage)
+                    birdImg.src = convertImgDataToImgURL(player.birdImage, "bird_flying")
 
                     const statusImg = document.createElement('img')
                     statusImg.classList.add('playerStatus')
@@ -163,7 +167,7 @@
                 } else {
                     players = users
                     div.children[0].innerHTML = `${player.name}`
-                    div.children[1].src = convertImgDataToImgURL(player.birdImage)
+                    div.children[1].src = convertImgDataToImgURL(player.birdImage, "bird_flying")
                     div.children[3].innerHTML = `${player.score}`
 
                     switch (player.status) {

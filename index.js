@@ -160,16 +160,16 @@ async function recolorImage(replacementColor) {
     const newb = parseInt(replacementColor.substring(4, 6), 16);
 
     // Read the input image
-    const image = await sharp("./public/bird.png").raw().toBuffer({ resolveWithObject: true });
+    const image = await sharp("./public/bird_flying.png").raw().toBuffer({ resolveWithObject: true });
 
     // RGB values of the color to replace
     const targetColor = [132, 175, 211];
 
     // Get image metadata
-    const { info, data } = image;
+    let { info, data } = image;
 
     // Get the width and height of the image
-    const { width, height, channels } = info;
+    let { width, height, channels } = info;
 
     // Iterate over each pixel in the image
     for (let i = 0; i < data.length; i += channels) {
@@ -186,7 +186,36 @@ async function recolorImage(replacementColor) {
         }
     }
 
-    return { 'width': width, 'height': height, 'data': data }
+    const data2 = data
+
+    // Read the input image
+    const image2 = await sharp("./public/bird_falling.png").raw().toBuffer({ resolveWithObject: true });
+
+    // Get image metadata
+     
+    ({ info, data } = image2);
+
+    // Get the width and height of the image
+     ({ width, height, channels } = info);
+    
+    
+
+    // Iterate over each pixel in the image
+    for (let i = 0; i < data.length; i += channels) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        // Check if the pixel matches the target color
+        if (r === targetColor[0] && g === targetColor[1] && b === targetColor[2]) {
+            // Replace the pixel with the replacement color
+            data[i] = newr
+            data[i + 1] = newg
+            data[i + 2] = newb
+        }
+    }
+
+    return { 'width': width, 'height': height, 'bird_flying': data2, 'bird_falling': data }
 }
 
 // Game over function
