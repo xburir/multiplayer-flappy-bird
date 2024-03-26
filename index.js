@@ -20,7 +20,6 @@ app.use(express.static("public"))
 const GRAVITY = 0.3;
 const PIPE_WIDTH = 80;
 const PIPE_GAP = 200;
-const PIPE_SPEED = 2;
 const CANVAS_WIDTH = 400;
 const CANVAS_HEIGHT = 600;
 const TICK_RATE = 1000 / 60; // 60 frames per second
@@ -32,6 +31,9 @@ let usersPositions = []
 let readyUsers = 0; // Count of users who are ready
 let gameLoopInterval;
 let gameRunning = false
+let gameTime = 0;
+let lastSpeedIncreaseTime = 0; // Initialize the time of the last speed increase
+let PIPE_SPEED = 2;
 
 
 // Main game loop
@@ -41,15 +43,33 @@ function gameLoop() {
         // Update game state
         update();
 
+        gameTime += TICK_RATE;
+        updatePipeSpeed()
+
         // Render game
         io.emit('render', { 'usersPositions': usersPositions, 'pipes': pipes, 'pipe_width': PIPE_WIDTH, 'pipe_gap': PIPE_GAP })
 
     } else {
         clearInterval(gameLoopInterval)
+        lastSpeedIncreaseTime = 0
+        gameTime = 0
+        PIPE_SPEED = 2
         pipes = []
         users = []
         usersPositions = []
         io.emit('gameEnd', "Winner is somebody")
+    }
+}
+
+
+function updatePipeSpeed() {
+    const elapsedTime = gameTime - lastSpeedIncreaseTime;
+
+    // Example: Increase pipe speed every 5000ms (5 seconds)
+    if (elapsedTime >= 5000) {
+        PIPE_SPEED += 0.5; // Increase by 0.5 units
+        lastSpeedIncreaseTime = gameTime; // Update the time of the last speed increase
+        console.log("speeding up pipes")
     }
 }
 
