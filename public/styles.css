@@ -87,19 +87,21 @@ table th {
 .playerCard > .playerStatus{
     position: relative; 
     top: -20px;
-    right: 35px;
+    right: 28px;
 }
 
 .playerBird {
-    width: 80px;
+    width: 60px;
 }
 
 .playerCard > p{
     margin: 0px;
     text-align: center;
-    max-width: 80px;
+    max-width: 60px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    hyphens: none;
+    word-wrap: normal;
+    white-space: nowrap;
 }
 
 #playerCards{

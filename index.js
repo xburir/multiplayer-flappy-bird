@@ -69,7 +69,6 @@ function updatePipeSpeed() {
     if (elapsedTime >= 5000) {
         PIPE_SPEED += 0.5; // Increase by 0.5 units
         lastSpeedIncreaseTime = gameTime; // Update the time of the last speed increase
-        console.log("speeding up pipes")
     }
 }
 
@@ -263,7 +262,7 @@ io.on('connection', (socket) => {
         console.log('User disconnected');
         users = users.filter(user => user.id !== socket.id);
         usersPositions = usersPositions.filter(user => user.id !== socket.id);
-        io.emit('updateUsers', users); // Broadcast updated user list
+        io.emit('userDisconnected', socket.id); // Broadcast updated user list
         readyUsers = Math.max(0, readyUsers - 1); // Update readyUsers count
 
     });
