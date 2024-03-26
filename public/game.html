@@ -151,14 +151,20 @@
                     const nameP = document.createElement('p')
                     nameP.innerHTML = `${player.name}`
 
+                    const scoreP = document.createElement('p')
+                    scoreP.innerHTML = `${player.score}`
+                    scoreP.classList.add("score")
+
                     div.appendChild(nameP)
                     div.appendChild(birdImg)
                     div.appendChild(statusImg)
+                    div.appendChild(scoreP)
                     cardsDiv.appendChild(div)
                 } else {
                     players = users
                     div.children[0].innerHTML = `${player.name}`
                     div.children[1].src = convertImgDataToImgURL(player.birdImage)
+                    div.children[3].innerHTML = `${player.score}`
 
                     switch (player.status) {
                         case "ready":
