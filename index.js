@@ -205,7 +205,7 @@ io.on('connection', (socket) => {
 
     recolorImage('#84AFD3').then(data => {
         users.push({ id: socket.id, status: "not_ready", name: socket.id, score: 0, birdImage: data });
-        usersPositions.push({ id: socket.id, bird: { x: 100, y: CANVAS_HEIGHT / 2, vy: 0, width: 40, height: 40 } })
+        usersPositions.push({ id: socket.id, bird: { x: 100, y: CANVAS_HEIGHT / 2, vy: 0, width: 33, height: 38 } })
         io.emit('updateUsers', users);
     })
 
