@@ -39,7 +39,12 @@
         const socket = io();
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        let players = []
+        const topPipe = new Image()
+        const bottomPipe = new Image()
+        bottomPipe.src = "bottomPipe.png"
+        topPipe.src = "topPipe.png"
+
+        let players = {}
 
         document.getElementById('readyButton').addEventListener('click', () => {
             socket.emit('toggleReady');
@@ -114,25 +119,16 @@
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             data.usersPositions.forEach(user => {
-                const userBird = players.find(u => u.id === user.id)
-                const image = new Image()
-                //TODO-riso toto by sa dalo asi oprimalizovat tak, že raz by sa to na zaciatku hry convertlo a potom by sa to len pouzivalo, pre kazdeho hraca ulozit jeho pngurl a hotoov
-                image.src = user.bird.vy < 0 ? convertImgDataToImgURL(userBird.birdImage, "bird_flying") : convertImgDataToImgURL(userBird.birdImage, "bird_falling");
-                if (userBird.id !== socket.id) {
+                const img = user.bird.vy < 0 ? players[user.id][1] : players[user.id][0];
+                if (user.id !== socket.id) {
                     ctx.globalAlpha = 0.4;
                 }
-                ctx.drawImage(image, user.bird.x, user.bird.y, user.bird.width, user.bird.height);
+                ctx.drawImage(img, user.bird.x, user.bird.y, user.bird.width, user.bird.height);
                 ctx.globalAlpha = 1;
             });
 
             // Draw pipes
-            ctx.fillStyle = 'red';
-            const topPipe = new Image()
-            const bottomPipe = new Image()
-            bottomPipe.src = "bottomPipe.png"
-            topPipe.src = "topPipe.png"
             for (let pipe of data.pipes) {
-                // ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y); // zhora
 
                 for (let i = 0; i * 20 < pipe.y - 20; i++) {  // tenka rura hornej pipe
                     ctx.drawImage(bottomPipe, pipe.x + 8, 20 * i, 64, 20)
@@ -141,7 +137,6 @@
                 for (let i = 0; i * 20 < canvas.height - 20; i++) {  // tenka rura spodnej pipe
                     ctx.drawImage(bottomPipe, pipe.x + 8, pipe.y + PIPE_GAP + 20 * i, 64, 20)
                 }
-
 
                 ctx.drawImage(topPipe, pipe.x, pipe.y - 32, PIPE_WIDTH, 32) // topPipe zhora
                 ctx.drawImage(topPipe, pipe.x, pipe.y + PIPE_GAP, PIPE_WIDTH, 32) // topPipe zdola
@@ -203,8 +198,12 @@
         }
 
         socket.on('updateUsers', (users) => {
-
             users.forEach(player => {
+                const imageFalling = new Image()
+                const imageFlying = new Image()
+                imageFalling.src = convertImgDataToImgURL(player.birdImage, "bird_falling")
+                imageFlying.src = convertImgDataToImgURL(player.birdImage, "bird_flying")
+                players[player.id] = [imageFalling, imageFlying] // 0 bude falling a 1 bude flying
                 let div = document.getElementById(player.id)
                 if (div == null) {
                     let cardsDiv = document.getElementById('playerCards')
@@ -214,7 +213,7 @@
 
                     const birdImg = document.createElement('img')
                     birdImg.classList.add('playerBird')
-                    birdImg.src = convertImgDataToImgURL(player.birdImage, "bird_flying")
+                    birdImg.src = players[player.id][1].src
 
                     const statusImg = document.createElement('img')
                     statusImg.classList.add('playerStatus')
@@ -243,9 +242,8 @@
                     div.appendChild(scoreP)
                     cardsDiv.appendChild(div)
                 } else {
-                    players = users
                     div.children[0].innerHTML = `${player.name}`
-                    div.children[1].src = convertImgDataToImgURL(player.birdImage, "bird_flying")
+                    div.children[1].src = players[player.id][1].src
                     div.children[3].innerHTML = `${player.score}`
 
                     switch (player.status) {

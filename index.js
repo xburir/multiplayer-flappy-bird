@@ -101,13 +101,13 @@ function update() {
                     user.score++; // Increment score if the bird passes the pipe
                 }
             })
+            io.emit('updateUsers', users)
         }
     }
 
     // Check for collisions
     checkCollisions();
     checkAlivePlayers();
-    io.emit('updateUsers', users)
 }
 
 // Spawn a new pipe
@@ -138,51 +138,52 @@ function checkAlivePlayers() {
 function checkCollisions() {
     for (let pipe of pipes) {
         usersPositions.forEach(user => {
+            if (users.find(u => u.id === user.id).status !== "dead") {
+                // hruba rura vrchnej pipe
+                if (user.bird.x < pipe.x + PIPE_WIDTH &&  // ked je vtak pred koncom pipe
+                    user.bird.x + user.bird.width > pipe.x && // ked je vtak a jeho objam za zaciatkom pipe
+                    user.bird.y < pipe.y && user.bird.y + user.bird.height > pipe.y - 32
+                ) {
+                    gameOver(user);
+                    return;
+                }
 
-            // hruba rura vrchnej pipe
-            if (user.bird.x < pipe.x + PIPE_WIDTH &&  // ked je vtak pred koncom pipe
-                user.bird.x + user.bird.width > pipe.x && // ked je vtak a jeho objam za zaciatkom pipe
-                user.bird.y < pipe.y && user.bird.y + user.bird.height > pipe.y - 32
-            ) {
-                gameOver(user);
-                return;
-            }
+                // hruba rura spodnej pipe
+                if (user.bird.x < pipe.x + PIPE_WIDTH &&
+                    user.bird.x + user.bird.width > pipe.x &&
+                    user.bird.y + user.bird.height > pipe.y + PIPE_GAP && user.bird.y < pipe.y + PIPE_GAP + 32
+                ) {
+                    gameOver(user);
+                    return;
+                }
 
-            // hruba rura spodnej pipe
-            if (user.bird.x < pipe.x + PIPE_WIDTH &&
-                user.bird.x + user.bird.width > pipe.x &&
-                user.bird.y + user.bird.height > pipe.y + PIPE_GAP && user.bird.y < pipe.y + PIPE_GAP + 32
-            ) {
-                gameOver(user);
-                return;
-            }
+                // tenka rura spodnej pipe
+                if (user.bird.x < pipe.x + PIPE_WIDTH - 8 &&
+                    user.bird.x + user.bird.width > pipe.x + 8 &&
+                    user.bird.y + user.bird.height > pipe.y + PIPE_GAP
+                ) {
+                    gameOver(user);
+                    return;
+                }
 
-            // tenka rura spodnej pipe
-            if (user.bird.x < pipe.x + PIPE_WIDTH - 8 &&
-                user.bird.x + user.bird.width > pipe.x + 8 &&
-                user.bird.y + user.bird.height > pipe.y + PIPE_GAP
-            ) {
-                gameOver(user);
-                return;
-            }
+                // tenka rura vrchnej pipe
+                if (user.bird.x < pipe.x + PIPE_WIDTH - 8 &&
+                    user.bird.x + user.bird.width > pipe.x + 8 &&
+                    user.bird.y < pipe.y
+                ) {
+                    gameOver(user);
+                    return;
+                }
 
-            // tenka rura vrchnej pipe
-            if (user.bird.x < pipe.x + PIPE_WIDTH - 8 &&
-                user.bird.x + user.bird.width > pipe.x + 8 &&
-                user.bird.y < pipe.y
-            ) {
-                gameOver(user);
-                return;
-            }
+                // Check for collisions with ground
+                if (user.bird.y + user.bird.height > CANVAS_HEIGHT) {
+                    gameOver(user);
+                }
 
-            // Check for collisions with ground
-            if (user.bird.y + user.bird.height > CANVAS_HEIGHT) {
-                gameOver(user);
-            }
-
-            // Check for collisions with roof
-            if (user.bird.y < 0) {
-                gameOver(user);
+                // Check for collisions with roof
+                if (user.bird.y < 0) {
+                    gameOver(user);
+                }
             }
         })
     }
@@ -259,6 +260,8 @@ function gameOver(user) {
     readyUsers--;
     users.find(u => u.id === user.id).status = "dead"
     io.to(user.id).emit('gameOver', "You lost");
+    io.emit('updateUsers', users)
+
 }
 
 function startGame() {
