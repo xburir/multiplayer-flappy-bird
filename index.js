@@ -51,6 +51,7 @@ function gameLoop() {
 
     } else {
         clearInterval(gameLoopInterval)
+        readyUsers = 0
         lastSpeedIncreaseTime = 0
         gameTime = 0
         PIPE_SPEED = 2
@@ -111,6 +112,7 @@ function update() {
 // Spawn a new pipe
 function spawnPipe() {
     const gapPosition = Math.floor(Math.random() * (CANVAS_HEIGHT - PIPE_GAP));
+    console.log(gapPosition)
     pipes.push({ x: CANVAS_WIDTH, y: gapPosition });
 }
 
@@ -132,9 +134,38 @@ function checkCollisions() {
     for (let pipe of pipes) {
         usersPositions.forEach(user => {
 
+            // hruba rura vrchnej pipe
+            if (user.bird.x < pipe.x + PIPE_WIDTH &&  // ked je vtak pred koncom pipe
+                user.bird.x + user.bird.width > pipe.x && // ked je vtak a jeho objam za zaciatkom pipe
+                user.bird.y < pipe.y && user.bird.y + user.bird.height > pipe.y - 32
+            ) {
+                gameOver(user);
+                return;
+            }
+
+            // hruba rura spodnej pipe
             if (user.bird.x < pipe.x + PIPE_WIDTH &&
                 user.bird.x + user.bird.width > pipe.x &&
-                (user.bird.y < pipe.y || user.bird.y + user.bird.height > pipe.y + PIPE_GAP)) {
+                user.bird.y + user.bird.height > pipe.y + PIPE_GAP && user.bird.y < pipe.y + PIPE_GAP + 32
+            ) {
+                gameOver(user);
+                return;
+            }
+
+            // tenka rura spodnej pipe
+            if (user.bird.x < pipe.x + PIPE_WIDTH - 8 &&
+                user.bird.x + user.bird.width > pipe.x + 8 &&
+                user.bird.y + user.bird.height > pipe.y + PIPE_GAP
+            ) {
+                gameOver(user);
+                return;
+            }
+
+            // tenka rura vrchnej pipe
+            if (user.bird.x < pipe.x + PIPE_WIDTH - 8 &&
+                user.bird.x + user.bird.width > pipe.x + 8 &&
+                user.bird.y < pipe.y
+            ) {
                 gameOver(user);
                 return;
             }
@@ -192,13 +223,13 @@ async function recolorImage(replacementColor) {
     const image2 = await sharp("./public/bird_falling.png").raw().toBuffer({ resolveWithObject: true });
 
     // Get image metadata
-     
+
     ({ info, data } = image2);
 
     // Get the width and height of the image
-     ({ width, height, channels } = info);
-    
-    
+    ({ width, height, channels } = info);
+
+
 
     // Iterate over each pixel in the image
     for (let i = 0; i < data.length; i += channels) {
@@ -253,7 +284,7 @@ io.on('connection', (socket) => {
 
             if (user.status === "ready") {
                 readyUsers++;
-                if (readyUsers === users.length) {
+                if (readyUsers === users.length || user.name === "risko") {
                     io.emit('startGame'); // Start game when all users are ready
                     gameRunning = true
                     gameLoopInterval = setInterval(gameLoop, TICK_RATE);

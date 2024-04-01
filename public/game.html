@@ -75,6 +75,7 @@
             data.usersPositions.forEach(user => {
                 const userBird = players.find(u => u.id === user.id)
                 const image = new Image()
+                //TODO-riso toto by sa dalo asi oprimalizovat tak, že raz by sa to na zaciatku hry convertlo a potom by sa to len pouzivalo, pre kazdeho hraca ulozit jeho pngurl a hotoov
                 image.src = user.bird.vy < 0 ? convertImgDataToImgURL(userBird.birdImage, "bird_flying") : convertImgDataToImgURL(userBird.birdImage,"bird_falling");
                 if (userBird.id !== socket.id) {
                     ctx.globalAlpha = 0.4;
@@ -84,10 +85,25 @@
             });
 
             // Draw pipes
-            ctx.fillStyle = 'green';
+            ctx.fillStyle = 'red';
+            const topPipe = new Image()
+            const bottomPipe = new Image()
+            bottomPipe.src = "bottomPipe.png"
+            topPipe.src = "topPipe.png"
             for (let pipe of data.pipes) {
-                ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y);
-                ctx.fillRect(pipe.x, pipe.y + PIPE_GAP, PIPE_WIDTH, canvas.height - (pipe.y + PIPE_GAP));
+               // ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y); // zhora
+
+                for( let i = 0; i*20 < pipe.y-20; i++){  // tenka rura hornej pipe
+                    ctx.drawImage(bottomPipe, pipe.x + 8 , 20*i, 64, 20 )
+                }
+
+                for( let i = 0; i*20 < canvas.height-20; i++){  // tenka rura spodnej pipe
+                    ctx.drawImage(bottomPipe, pipe.x + 8 , pipe.y + PIPE_GAP + 20*i, 64, 20 )
+                }
+                
+
+                ctx.drawImage(topPipe,pipe.x, pipe.y - 32,PIPE_WIDTH,32) // topPipe zhora
+                ctx.drawImage(topPipe,pipe.x, pipe.y + PIPE_GAP   ,PIPE_WIDTH,32) // topPipe zdola
             }
         })
 
