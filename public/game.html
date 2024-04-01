@@ -58,9 +58,50 @@
 
         });
 
-        socket.on("userDisconnected", (playerId) =>{
+        socket.on('startCountdown', () => {
+            document.getElementById('game-container').style.display = 'flex'
+            document.getElementById("beforeGame").style.display = 'none'
+
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000'; // Set text color
+            ctx.font = '48px monospace'; // Set font size and family
+            ctx.fillText("Get ready", canvas.width / 2 - 100, canvas.height / 2 + 20); // Draw countdown number
+
+            let countdown = 3; // Initial countdown value
+            let countdownInterval;
+            function startCountdown() {
+                countdownInterval = setInterval(updateCountdown, 1000); // Update every second
+            }
+
+            function updateCountdown() {
+                if (countdown >= 1) {
+                    drawCountdown();
+                    countdown--;
+                } else {
+                    clearInterval(countdownInterval);
+                }
+
+            }
+
+            function drawCountdown() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#000'; // Set text color
+                ctx.font = '48px monospace'; // Set font size and family
+                ctx.fillText(countdown, canvas.width / 2 - 20, canvas.height / 2 + 20); // Draw countdown number
+            }
+
+            // Start the countdown when the page loads (or when a button is clicked, etc.)
+            startCountdown();
+
+        });
+
+        socket.on("userDisconnected", (playerId) => {
             let div = document.getElementById(playerId)
-            if (div != null){
+            if (div != null) {
                 div.remove()
             }
 
@@ -76,7 +117,7 @@
                 const userBird = players.find(u => u.id === user.id)
                 const image = new Image()
                 //TODO-riso toto by sa dalo asi oprimalizovat tak, že raz by sa to na zaciatku hry convertlo a potom by sa to len pouzivalo, pre kazdeho hraca ulozit jeho pngurl a hotoov
-                image.src = user.bird.vy < 0 ? convertImgDataToImgURL(userBird.birdImage, "bird_flying") : convertImgDataToImgURL(userBird.birdImage,"bird_falling");
+                image.src = user.bird.vy < 0 ? convertImgDataToImgURL(userBird.birdImage, "bird_flying") : convertImgDataToImgURL(userBird.birdImage, "bird_falling");
                 if (userBird.id !== socket.id) {
                     ctx.globalAlpha = 0.4;
                 }
@@ -91,19 +132,19 @@
             bottomPipe.src = "bottomPipe.png"
             topPipe.src = "topPipe.png"
             for (let pipe of data.pipes) {
-               // ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y); // zhora
+                // ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y); // zhora
 
-                for( let i = 0; i*20 < pipe.y-20; i++){  // tenka rura hornej pipe
-                    ctx.drawImage(bottomPipe, pipe.x + 8 , 20*i, 64, 20 )
+                for (let i = 0; i * 20 < pipe.y - 20; i++) {  // tenka rura hornej pipe
+                    ctx.drawImage(bottomPipe, pipe.x + 8, 20 * i, 64, 20)
                 }
 
-                for( let i = 0; i*20 < canvas.height-20; i++){  // tenka rura spodnej pipe
-                    ctx.drawImage(bottomPipe, pipe.x + 8 , pipe.y + PIPE_GAP + 20*i, 64, 20 )
+                for (let i = 0; i * 20 < canvas.height - 20; i++) {  // tenka rura spodnej pipe
+                    ctx.drawImage(bottomPipe, pipe.x + 8, pipe.y + PIPE_GAP + 20 * i, 64, 20)
                 }
-                
 
-                ctx.drawImage(topPipe,pipe.x, pipe.y - 32,PIPE_WIDTH,32) // topPipe zhora
-                ctx.drawImage(topPipe,pipe.x, pipe.y + PIPE_GAP   ,PIPE_WIDTH,32) // topPipe zdola
+
+                ctx.drawImage(topPipe, pipe.x, pipe.y - 32, PIPE_WIDTH, 32) // topPipe zhora
+                ctx.drawImage(topPipe, pipe.x, pipe.y + PIPE_GAP, PIPE_WIDTH, 32) // topPipe zdola
             }
         })
 
@@ -112,10 +153,31 @@
         })
 
         socket.on('gameEnd', (message) => {
-            console.log(message);
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000'; // Set text color
+            ctx.font = '48px monospace'; // Set font size and family
+            const textHeight = ctx.measureText("blabla").height
+            ctx.fillText("Game Over", canvas.width / 2 - ctx.measureText("Game Over").width / 2, canvas.height / 2 - 40);
+            ctx.fillText("Winner is:", canvas.width / 2 - ctx.measureText("Winner is:").width / 2, canvas.height / 2);
+
+            let fontSize = 48
+            // Function to measure the width of the text with the current font size
+            function getTextWidth(text, font) {
+                ctx.font = font;
+                return ctx.measureText(text).width;
+            }
+
+            // Reduce the font size until the text fits within the canvas width
+            while (getTextWidth(message, `${fontSize}px monospace`) > canvas.width) {
+                fontSize--; // Decrease font size
+            }
+
+            ctx.fillText(message, (canvas.width) / 2 - ctx.measureText(message).width / 2, canvas.height / 2 + 40, canvas.width);
         })
 
-        function convertImgDataToImgURL(data,state) {
+        function convertImgDataToImgURL(data, state) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -125,12 +187,12 @@
 
             // Create ImageData object from received image data
             let imageDataObject;
-            if (state === 'bird_flying'){
+            if (state === 'bird_flying') {
                 imageDataObject = new ImageData(new Uint8ClampedArray(data.bird_flying), data.width, data.height);
             }
-            if (state === 'bird_falling'){
+            if (state === 'bird_falling') {
                 imageDataObject = new ImageData(new Uint8ClampedArray(data.bird_falling), data.width, data.height);
-            } 
+            }
             // Put the received image data onto the canvas
             ctx.putImageData(imageDataObject, 0, 0);
 

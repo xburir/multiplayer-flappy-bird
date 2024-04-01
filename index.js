@@ -34,6 +34,7 @@ let gameRunning = false
 let gameTime = 0;
 let lastSpeedIncreaseTime = 0; // Initialize the time of the last speed increase
 let PIPE_SPEED = 2;
+let lastPlayer = null
 
 
 // Main game loop
@@ -58,7 +59,7 @@ function gameLoop() {
         pipes = []
         users = []
         usersPositions = []
-        io.emit('gameEnd', "Winner is somebody")
+        io.emit('gameEnd', lastPlayer.name)
     }
 }
 
@@ -112,17 +113,21 @@ function update() {
 // Spawn a new pipe
 function spawnPipe() {
     const gapPosition = Math.floor(Math.random() * (CANVAS_HEIGHT - PIPE_GAP));
-    console.log(gapPosition)
     pipes.push({ x: CANVAS_WIDTH, y: gapPosition });
 }
 
 function checkAlivePlayers() {
     let anybodyAlive = false
+    let alivePlayers = []
     users.forEach(user => {
         if (user.status === "ready") {
             anybodyAlive = true
+            alivePlayers.push(user)
         }
     })
+    if (alivePlayers.length === 1) {
+        lastPlayer = alivePlayers[0]
+    }
     if (!anybodyAlive) {
         gameRunning = false
     }
@@ -256,6 +261,12 @@ function gameOver(user) {
     io.to(user.id).emit('gameOver', "You lost");
 }
 
+function startGame() {
+    io.emit('startGame'); // Start game when all users are ready or when its forced to start by secret player name
+    gameRunning = true
+    gameLoopInterval = setInterval(gameLoop, TICK_RATE);
+}
+
 
 
 io.on('connection', (socket) => {
@@ -285,9 +296,8 @@ io.on('connection', (socket) => {
             if (user.status === "ready") {
                 readyUsers++;
                 if (readyUsers === users.length || user.name === "risko") {
-                    io.emit('startGame'); // Start game when all users are ready
-                    gameRunning = true
-                    gameLoopInterval = setInterval(gameLoop, TICK_RATE);
+                    io.emit('startCountdown')
+                    setTimeout(startGame, 4000)
                 }
             } else {
                 readyUsers--;
